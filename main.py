@@ -20,7 +20,6 @@ class AgentState(TypedDict):
     
     messages: Annotated[Sequence[BaseMessage], add_messages]
 
-llm = ChatGoogleGenerativeAI(model="gemini-2.5-flash", api_key=os.getenv('GOOGLE_API_KEY'))
 
 ## insert -- smtp settings
 port = 465
@@ -42,6 +41,37 @@ def emailIt():
         server.starttls(context=context)
         server.login(sender_email, password)
         server.sendmail(sender_email, receiver_email, message)
+
+
+llm = ChatGoogleGenerativeAI(model="gemini-2.5-flash", api_key=os.getenv('GOOGLE_API_KEY'))
+tools = [emailIt]
+
+def agent(state: AgentState) -> AgentState:
+    systtem_prompt = SystemMessage(content=f"""
+    * insert suitable system prompt *
+    """)
+
+# modify stategraph later
+graph = StateGraph(AgentState)
+graph.add_node("agent", model_call)
+
+tool_node = ToolNode(tools=tools)
+graph.add_node("tools", tool_node)
+
+graph.set_entry_point("agent")
+
+graph.add_conditional_edges(
+    "agent",
+    should_continue,
+    {
+        "continue": "tools",
+        "end": END
+    }
+)
+
+graph.add_edge("tools", "agent")
+
+app = graph.compile()
 
 user_input = input("Enter your query: ")
 while user_input !="exit":
