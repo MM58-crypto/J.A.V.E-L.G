@@ -29,6 +29,18 @@ receiver_email = ""
 password = os.getenv('smtp_pass')
 message = """\
 Subject: Job application inquiry
+Dear Hiring Team,
+
+I’m writing to express interest in a Software Engineer role at your esteemed company. With experience in software development, API testing, and software deployment, I’m eager to contribute to your team.
+
+I’m proficient in Python, C++, JavaScript, and frameworks like Django and Nodejs, with additional experience in containerization tools such as Docker.
+
+I’ve attached my resume and would appreciate the opportunity to discuss how my skills align with your needs.
+
+Thank you for your consideration
+
+Best Regards,
+
 
 
     """
