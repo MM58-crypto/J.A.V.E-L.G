@@ -19,7 +19,7 @@ load_dotenv()
 class AgentState(TypedDict): 
     
     messages: Annotated[Sequence[BaseMessage], add_messages]
-
+    #messages: List[HumanMessage]
 
 ## insert -- smtp settings
 port = 465
@@ -28,7 +28,8 @@ sender_email = ""
 receiver_email = ""
 password = os.getenv('smtp_pass')
 message = """\
-Subject: Job application inquiry
+Subject: Job opportunity inquiry
+
 Dear Hiring Team,
 
 I’m writing to express interest in a Software Engineer role at your esteemed company. With experience in software development, API testing, and software deployment, I’m eager to contribute to your team.
@@ -44,28 +45,53 @@ Best Regards,
 
 
     """
+emails_file = open("new_emails.txt", "r")
+
+
+
+
+#def emailBody(state: AgentState) -> AgentState:
+#    # make llm generate the email body and subject for the role
+#    llm_response = llm.invoke(state["messages"])
+#    print(f"\nJAVE: {response.content}")
+#    return state
+
 
 @tool 
 def emailIt():
 ## 
+## insert for loop to loop through the emails in the emails list
     context = ssl.create_default_context()
     with smtpblib.SMTP(smtp_server, port) as server:
         server.starttls(context=context)
         server.login(sender_email, password)
         server.sendmail(sender_email, receiver_email, message)
 
-
 llm = ChatGoogleGenerativeAI(model="gemini-2.5-flash", api_key=os.getenv('GOOGLE_API_KEY'))
 tools = [emailIt]
 
-def agent(state: AgentState) -> AgentState:
-    systtem_prompt = SystemMessage(content=f"""
-    * insert suitable system prompt *
+
+def llm_call(state: AgentState) -> AgentState:
+    system_prompt = SystemMessage(content=f"""
+    You are a powerful and helpful AI Assistant and Agent. fulfill my requests to the best of your ability
     """)
+    llm_response = llm.invoke([system_prompt] + state["messages"])
+    return  {"messages": [response]}
+
+def should_continue(state: AgentState):
+    messages = state["messages"]
+    last_message = message[-1]
+
+    if not last_message.tool_calls:
+        
+        return "end"
+    else:
+        return "continue"
+
 
 # modify stategraph later
 graph = StateGraph(AgentState)
-graph.add_node("agent", model_call)
+graph.add_node("agent", llm_call)
 
 tool_node = ToolNode(tools=tools)
 graph.add_node("tools", tool_node)
