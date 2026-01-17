@@ -1,4 +1,4 @@
-from typing import TypedDict, Annotated, Sequence
+from typing import TypedDict, Annotated, Sequence, List
 from langgraph.graph import StateGraph, START, END
 from dotenv import load_dotenv
 import os
@@ -10,7 +10,7 @@ from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain_core.tools import tool
 from langgraph.graph.message import add_messages
 from langgraph.prebuilt import ToolNode
-import smtpblib, ssl, email 
+import smtplib, ssl, email 
 
 load_dotenv()
 
@@ -55,7 +55,10 @@ emails_file = open("new_emails.txt", "r")
 
 
 @tool 
-def emailIt(file):
+def emailIt():
+    """
+    a function that sends application emails to the addresses in the file
+    """
 ## 
 ## insert for loop to loop through the emails in the emails list
     context = ssl.create_default_context()
@@ -64,7 +67,7 @@ def emailIt(file):
         server.login(sender_email, password)
         try:
             for email in emails_file:
-                server.sendmail(sender_email, email, message)
+                server.sendmail(sender_email, emails_file, message)
         except:
             print("An error occurred while sending emails")
 
@@ -77,7 +80,7 @@ def llm_call(state: AgentState) -> AgentState:
     You are a powerful and helpful AI Assistant and Agent. fulfill my requests to the best of your ability
     """)
     llm_response = llm.invoke([system_prompt] + state["messages"])
-    return  {"messages": [response]}
+    return  {"messages": [llm_response]}
   
 
 def should_continue(state: AgentState):
