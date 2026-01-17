@@ -25,7 +25,6 @@ class AgentState(TypedDict):
 port = 465
 smtp_server = "smtp.gmail.com"
 sender_email = ""
-receiver_email = ""
 password = os.getenv('smtp_pass')
 message = """\
 Subject: Job opportunity inquiry
@@ -48,8 +47,6 @@ Best Regards,
 emails_file = open("new_emails.txt", "r")
 
 
-
-
 #def emailBody(state: AgentState) -> AgentState:
 #    # make llm generate the email body and subject for the role
 #    llm_response = llm.invoke(state["messages"])
@@ -58,14 +55,18 @@ emails_file = open("new_emails.txt", "r")
 
 
 @tool 
-def emailIt():
+def emailIt(file):
 ## 
 ## insert for loop to loop through the emails in the emails list
     context = ssl.create_default_context()
     with smtpblib.SMTP(smtp_server, port) as server:
         server.starttls(context=context)
         server.login(sender_email, password)
-        server.sendmail(sender_email, receiver_email, message)
+        try:
+            for email in emails_file:
+                server.sendmail(sender_email, email, message)
+        except:
+            print("An error occurred while sending emails")
 
 llm = ChatGoogleGenerativeAI(model="gemini-2.5-flash", api_key=os.getenv('GOOGLE_API_KEY'))
 tools = [emailIt]
@@ -77,6 +78,7 @@ def llm_call(state: AgentState) -> AgentState:
     """)
     llm_response = llm.invoke([system_prompt] + state["messages"])
     return  {"messages": [response]}
+  
 
 def should_continue(state: AgentState):
     messages = state["messages"]
@@ -113,5 +115,5 @@ app = graph.compile()
 
 user_input = input("Enter your query: ")
 while user_input !="exit":
-    agent.invoke({"messages": [HumanMessage(content=user_input)]})
+    app.invoke({"messages": [HumanMessage(content=user_input)]})
     user_input = input("Enter your query: ")
