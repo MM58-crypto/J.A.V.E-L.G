@@ -11,6 +11,11 @@ from langchain_core.tools import tool
 from langgraph.graph.message import add_messages
 from langgraph.prebuilt import ToolNode
 import smtplib, ssl, email 
+from email.mime.multipart import MIMEMultipart
+from email.mime.text import MIMEText
+from email.mime.base import MIMEBase
+from email import encoders
+
 
 load_dotenv()
 
@@ -26,8 +31,7 @@ port = 465
 smtp_server = "smtp.gmail.com"
 sender_email = ""
 password = os.getenv('smtp_pass')
-message = """\
-Subject: Job opportunity inquiry
+body = """\
 
 Dear Hiring Team,
 
@@ -45,6 +49,23 @@ Best Regards,
 
     """
 emails_file = open("new_emails.txt", "r")
+
+# email object setup
+message = MIMEMultipart()
+message["From"] = sender_email
+message["To"] = ""  # later
+message["Subject"] = "Job opportunity inquiry"
+
+attachment_path = "/home/mmk/mm-resumes/Mohd_Magdi_AI_resume.pdf"
+
+attached_file = open(attachment_path, "rb")
+payload = MIMEBase('application', 'octet-stream')
+payload.set_payload((attached_file).read())
+payload.add_header(
+    "Content-Disposition", f"attached_file; filename= {attachment_path.split('/')[-1]}"
+)
+message.attach(MIMEText(body, "plain"))
+message.attach(payload)
 
 
 #def emailBody(state: AgentState) -> AgentState:
