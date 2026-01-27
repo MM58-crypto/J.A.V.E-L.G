@@ -76,7 +76,7 @@ message.attach(payload)
 
 
 @tool 
-def emailIt():
+def emailIt(efile):
     """
     a function that sends application emails to the addresses in the file
     """
@@ -87,13 +87,13 @@ def emailIt():
         server.starttls(context=context)
         server.login(sender_email, password)
         try:
-            for email in emails_file:
+            for email in efile:
                 server.sendmail(sender_email, emails_file, message)
         except:
             print("An error occurred while sending emails")
 
 llm = ChatGoogleGenerativeAI(model="gemini-2.5-flash", api_key=os.getenv('GOOGLE_API_KEY'))
-tools = [emailIt]
+tools = [emailIt(emails_file)]
 
 
 def llm_call(state: AgentState) -> AgentState:
