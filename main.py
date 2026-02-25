@@ -48,24 +48,26 @@ Best Regards,
 
 
     """
-emails_file = open("new_emails.txt", "r")
+
 
 # email object setup
-message = MIMEMultipart()
-message["From"] = sender_email
-message["To"] = ""  # later
-message["Subject"] = "Job opportunity inquiry"
+message_obj = MIMEMultipart()
+#message["From"] = sender_email
+#message["To"] = ""  # later
+message_obj["Subject"] = "Job opportunity inquiry"
 
-attachment_path = "/home/mmk/mm-resumes/Mohd_Magdi_AI_resume.pdf"
+attachment_path = ""
 
-attached_file = open(attachment_path, "rb")
-payload = MIMEBase('application', 'octet-stream')
-payload.set_payload((attached_file).read())
+with open(attachment_path, "rb") as attached_file:
+    payload = MIMEBase("application", "octet-stream")
+    payload.set_payload(attached_file.read())
+
 payload.add_header(
-    "Content-Disposition", f"attached_file; filename= {attachment_path.split('/')[-1]}"
+    "Content-Disposition",
+    f"attachment; filename={attachment_path.split('/')[-1]}"
 )
-message.attach(MIMEText(body, "plain"))
-message.attach(payload)
+message_obj.attach(MIMEText(body, "plain"))
+message_obj.attach(payload)
 
 
 #def emailBody(state: AgentState) -> AgentState:
@@ -76,29 +78,36 @@ message.attach(payload)
 
 
 @tool 
-def emailIt(efile):
+def emailIt() -> str:
     """
     a function that sends application emails to the addresses in the file
     """
 ## 
 ## insert for loop to loop through the emails in the emails list
+    
+    efile = "test_emails.txt"
+    with open(efile, "r") as fr:
+        emails = [email.strip() for email in content.split(",") if email.strip()]
+
     context = ssl.create_default_context()
-    with smtpblib.SMTP(smtp_server, port) as server:
-        server.starttls(context=context)
+
+    with smtplib.SMTP_SSL(smtp_server, port, context=context) as server:
         server.login(sender_email, password)
         try:
-            for email in efile:
-                server.sendmail(sender_email, emails_file, message)
-        except:
-            print("An error occurred while sending emails")
+            for email in emails:
+                server.sendmail(sender_email, email, message_obj.as_string())
+        except Exception as e:
+            print("An error occurred while sending emails: " + str(e))
+
+    return "Emails sent successfully!"
 
 llm = ChatGoogleGenerativeAI(model="gemini-2.5-flash", api_key=os.getenv('GOOGLE_API_KEY'))
-tools = [emailIt(emails_file)]
-
+tools = [emailIt]
+llm = llm.bind_tools(tools)
 
 def llm_call(state: AgentState) -> AgentState:
     system_prompt = SystemMessage(content=f"""
-    You are a powerful and helpful AI Assistant and Agent. fulfill my requests to the best of your ability
+    You are a powerful and helpful AI Assistant and Agent. Fulfill my requests to the best of your ability
     """)
     llm_response = llm.invoke([system_prompt] + state["messages"])
     return  {"messages": [llm_response]}
@@ -106,7 +115,7 @@ def llm_call(state: AgentState) -> AgentState:
 
 def should_continue(state: AgentState):
     messages = state["messages"]
-    last_message = message[-1]
+    last_message = messages[-1]
 
     if not last_message.tool_calls:
         
@@ -137,7 +146,16 @@ graph.add_edge("tools", "agent")
 
 app = graph.compile()
 
-user_input = input("Enter your query: ")
-while user_input !="exit":
-    app.invoke({"messages": [HumanMessage(content=user_input)]})
-    user_input = input("Enter your query: ")
+state = {"messages": []}
+#user_input = input("Enter your query: ")
+
+while True:
+    user_input = input("User: ")
+    if user_input.lower() == "exit":
+        break
+
+    state = app.invoke({
+        "messages": state["messages"] + [HumanMessage(content=user_input)]
+    })
+
+    print("AI:", state["messages"][-1].content)
